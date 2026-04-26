@@ -74,8 +74,8 @@ export interface OMLineageNode {
 }
 
 export interface OMLineageEdge {
-  fromEntity: { id: string; type: string };
-  toEntity: { id: string; type: string };
+  fromEntity: string;
+  toEntity: string;
 }
 
 export interface OMLineageResponse {

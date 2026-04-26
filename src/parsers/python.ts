@@ -21,6 +21,8 @@ export function extractAssetsFromPython(source: string): ExtractedAsset[] {
       assets.push({
         table: parts[parts.length - 1],
         schema: parts.length >= 2 ? parts[parts.length - 2] : undefined,
+        database: parts.length >= 3 ? parts[parts.length - 3] : undefined,
+        fqn: sql.trim(),
         columns: [],
       });
     } else {
@@ -32,6 +34,8 @@ export function extractAssetsFromPython(source: string): ExtractedAsset[] {
         assets.push({
           table: parts[parts.length - 1],
           schema: parts.length >= 2 ? parts[parts.length - 2] : undefined,
+          database: parts.length >= 3 ? parts[parts.length - 3] : undefined,
+          fqn: m2[1],
           columns: [],
         });
       }
@@ -60,6 +64,8 @@ export function extractAssetsFromPython(source: string): ExtractedAsset[] {
       assets.push({
         table: parts[parts.length - 1],
         schema: parts.length >= 2 ? parts[parts.length - 2] : undefined,
+        database: parts.length >= 3 ? parts[parts.length - 3] : undefined,
+        fqn: m2[1],
         columns: [],
       });
     }

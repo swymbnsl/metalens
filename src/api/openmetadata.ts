@@ -1,4 +1,5 @@
 import { MetadataCache } from '../cache/MetadataCache';
+import { log } from '../utils/logger';
 import type {
   OMTable,
   OMSearchResult,
@@ -11,22 +12,27 @@ export class OpenMetadataClient {
   constructor(
     private host: string,
     private token: string,
-    private cache: MetadataCache
+    private cache: MetadataCache,
   ) {}
 
   updateConfig(host: string, token: string): void {
     this.host = host;
     this.token = token;
+    log(`OpenMetadata client config updated. host=${this.host}`);
   }
 
   private async fetchJSON<T>(path: string, skipCache = false): Promise<T> {
     const cacheKey = path;
     if (!skipCache) {
       const cached = this.cache.get<T>(cacheKey);
-      if (cached !== undefined) return cached;
+      if (cached !== undefined) {
+        log(`OpenMetadata cache hit for ${this.host}/api/v1${path}`);
+        return cached;
+      }
     }
 
-    const url = `${this.host}/api/v1${path}`;
+    const url = `${this.host}api/v1${path}`;
+    log(`OpenMetadata request start: GET ${url}`);
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${this.token}`,
@@ -34,18 +40,23 @@ export class OpenMetadataClient {
         Accept: 'application/json',
       },
     });
+    log(`OpenMetadata response received: ${res.status} ${res.statusText} for ${url}`);
 
     if (!res.ok) {
-      throw new Error(`OpenMetadata API ${res.status} ${res.statusText}: ${path}`);
+      throw new Error(`OpenMetadata API ${res.status} ${res.statusText}: ${url}`);
     }
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
-      throw new Error(`Invalid response format from OpenMetadata API (expected JSON, got ${contentType || 'unknown'}). Endpoint: ${path}`);
+      throw new Error(
+        `Invalid response format from OpenMetadata API (expected JSON, got ${contentType || 'unknown'}). Endpoint: ${path}`,
+      );
     }
-    
+
     const data = (await res.json()) as T;
+    log(`OpenMetadata JSON parsed successfully for ${url}`);
     if (!skipCache) {
       this.cache.set(cacheKey, data);
+      log(`OpenMetadata response cached for ${url}`);
     }
     return data;
   }
@@ -81,9 +92,7 @@ export class OpenMetadataClient {
       const results = await this.searchAssets(query, 5);
       const hits = results?.hits?.hits ?? [];
       // Find exact name match first
-      const exact = hits.find(
-        h => h._source.name.toLowerCase() === tableName.toLowerCase()
-      );
+      const exact = hits.find((h) => h._source.name.toLowerCase() === tableName.toLowerCase());
       const hit = exact ?? hits[0];
       if (!hit) return null;
       return this.getTableByFQN(hit._source.fullyQualifiedName);
@@ -96,11 +105,16 @@ export class OpenMetadataClient {
   async getLineage(
     fqn: string,
     entityType = 'table',
-    upstreamDepth = 2,
-    downstreamDepth = 2
+    upstreamDepth = 1,
+    downstreamDepth = 1,
   ): Promise<OMLineageResponse> {
     const path = `/lineage/${entityType}/name/${encodeURIComponent(fqn)}?upstreamDepth=${upstreamDepth}&downstreamDepth=${downstreamDepth}`;
-    return this.fetchJSON<OMLineageResponse>(path);
+    log(
+      `Preparing lineage request for entityType=${entityType}, fqn=${fqn}, upstreamDepth=${upstreamDepth}, downstreamDepth=${downstreamDepth}`,
+    );
+    log(`Lineage request URL: ${this.host}/api/v1${path}`);
+    log('Lineage requests bypass cache to ensure a fresh fetch on every click.');
+    return this.fetchJSON<OMLineageResponse>(path, true);
   }
 
   /** Get data quality test cases for a table */
@@ -120,11 +134,7 @@ export class OpenMetadataClient {
   }
 
   /** Update table or column description via JSON Patch */
-  async updateDescription(
-    entityType: string,
-    id: string,
-    description: string
-  ): Promise<unknown> {
+  async updateDescription(entityType: string, id: string, description: string): Promise<unknown> {
     const res = await fetch(`${this.host}/api/v1/${entityType}/${id}`, {
       method: 'PATCH',
       headers: {
@@ -141,11 +151,7 @@ export class OpenMetadataClient {
   }
 
   /** Add a glossary term to an asset */
-  async addGlossaryTerm(
-    entityType: string,
-    id: string,
-    glossaryTermFQN: string
-  ): Promise<unknown> {
+  async addGlossaryTerm(entityType: string, id: string, glossaryTermFQN: string): Promise<unknown> {
     const res = await fetch(`${this.host}/api/v1/${entityType}/${id}`, {
       method: 'PATCH',
       headers: {
@@ -156,7 +162,12 @@ export class OpenMetadataClient {
         {
           op: 'add',
           path: '/tags/-',
-          value: { tagFQN: glossaryTermFQN, source: 'Glossary', labelType: 'Manual', state: 'Confirmed' },
+          value: {
+            tagFQN: glossaryTermFQN,
+            source: 'Glossary',
+            labelType: 'Manual',
+            state: 'Confirmed',
+          },
         },
       ]),
     });
@@ -165,7 +176,11 @@ export class OpenMetadataClient {
   }
 
   /** Vote on a data asset */
-  async vote(entityType: string, id: string, voteType: 'votedUp' | 'votedDown' | 'unVoted'): Promise<unknown> {
+  async vote(
+    entityType: string,
+    id: string,
+    voteType: 'votedUp' | 'votedDown' | 'unVoted',
+  ): Promise<unknown> {
     const res = await fetch(`${this.host}/api/v1/${entityType}/${id}/vote`, {
       method: 'PUT',
       headers: {

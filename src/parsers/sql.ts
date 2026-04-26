@@ -7,6 +7,7 @@ export interface ExtractedAsset {
   table: string;
   schema?: string;
   database?: string;
+  fqn?: string;
   columns: string[];
   alias?: string;
   /** Zero-based line number of first occurrence in text */
@@ -51,9 +52,12 @@ function traverseAST(node: unknown, assets: ExtractedAsset[]): void {
     const froms = Array.isArray(n['from']) ? n['from'] : [n['from']];
     for (const ref of froms as Record<string, unknown>[]) {
       if (ref['table']) {
+        const tableName = String(ref['table']);
+        const dbValue = typeof ref['db'] === 'string' ? ref['db'] : undefined;
         assets.push({
-          table: String(ref['table']),
-          schema: typeof ref['db'] === 'string' ? ref['db'] : undefined,
+          table: tableName,
+          schema: dbValue,
+          fqn: dbValue ? `${dbValue}.${tableName}` : tableName,
           alias: typeof ref['as'] === 'string' ? ref['as'] : undefined,
           columns: extractColumns(n['columns']),
         });
@@ -102,6 +106,7 @@ function extractByRegex(sql: string): ExtractedAsset[] {
       table: parts[parts.length - 1],
       schema: parts.length >= 2 ? parts[parts.length - 2] : undefined,
       database: parts.length >= 3 ? parts[parts.length - 3] : undefined,
+      fqn: raw,
       columns: [],
     });
   }

@@ -14,8 +14,8 @@ interface LineageNode {
 }
 
 interface LineageEdge {
-  fromEntity: { id: string; type: string };
-  toEntity: { id: string; type: string };
+  fromEntity: string;
+  toEntity: string;
 }
 
 interface LineageData {
@@ -54,8 +54,8 @@ function layoutNodes(data: LineageData): Map<string, { x: number; y: number }> {
 
   // Simple layered layout
   // Find upstream and downstream sets
-  const upstreamIds = new Set((data.upstreamEdges ?? []).map(e => e.fromEntity.id));
-  const downstreamIds = new Set((data.downstreamEdges ?? []).map(e => e.toEntity.id));
+  const upstreamIds = new Set((data.upstreamEdges ?? []).map(e => e.fromEntity));
+  const downstreamIds = new Set((data.downstreamEdges ?? []).map(e => e.toEntity));
 
   const upstreamNodes = allNodes.filter(n => upstreamIds.has(n.id));
   const downstreamNodes = allNodes.filter(n => downstreamIds.has(n.id));
@@ -96,8 +96,8 @@ export default function App(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [currentFqn, setCurrentFqn] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [upstreamDepth, setUpstreamDepth] = useState(2);
-  const [downstreamDepth, setDownstreamDepth] = useState(2);
+  const [upstreamDepth, setUpstreamDepth] = useState(1);
+  const [downstreamDepth, setDownstreamDepth] = useState(1);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [transform, setTransform] = useState({ x: 50, y: 0, scale: 1 });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -114,6 +114,7 @@ export default function App(): React.ReactElement {
           setIsLoading(true);
           setError(null);
           setCurrentFqn(String(msg.fqn ?? ''));
+          setSearchInput(String(msg.fqn ?? ''));
           break;
         case 'lineageData':
           setIsLoading(false);
@@ -257,8 +258,8 @@ export default function App(): React.ReactElement {
             <g transform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
               {/* Edges */}
               {allEdges.map((edge, i) => {
-                const fromPos = positions.get(edge.fromEntity.id);
-                const toPos = positions.get(edge.toEntity.id);
+                const fromPos = positions.get(edge.fromEntity);
+                const toPos = positions.get(edge.toEntity);
                 if (!fromPos || !toPos) return null;
                 const x1 = fromPos.x + NODE_W;
                 const y1 = fromPos.y + NODE_H / 2;

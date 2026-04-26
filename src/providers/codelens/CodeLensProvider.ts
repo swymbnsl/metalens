@@ -44,13 +44,14 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
     for (const asset of assets.slice(0, 10)) {
       const lineIdx = this.findTableLine(document, asset.table);
       const range = new vscode.Range(lineIdx, 0, lineIdx, 0);
+      const lineageTarget = this.getLineageTarget(asset);
 
       lenses.push(
         new vscode.CodeLens(range, {
           title: `🔍 Lineage: ${asset.table}`,
           command: 'metalens.showLineage',
           tooltip: `View upstream/downstream lineage for ${asset.table}`,
-          arguments: [asset.schema ? `${asset.schema}.${asset.table}` : asset.table],
+          arguments: [lineageTarget],
         })
       );
 
@@ -90,5 +91,15 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
   refresh(): void {
     this._onDidChangeCodeLenses.fire();
+  }
+
+  private getLineageTarget(asset: {
+    table: string;
+    schema?: string;
+    database?: string;
+    fqn?: string;
+  }): string {
+    if (asset.fqn) return asset.fqn;
+    return [asset.database, asset.schema, asset.table].filter(Boolean).join('.');
   }
 }

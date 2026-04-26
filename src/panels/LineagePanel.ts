@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { OpenMetadataClient } from '../api/openmetadata';
-import { logError } from '../utils/logger';
+import { log, logError } from '../utils/logger';
 
 export class LineagePanel {
   static currentPanel: LineagePanel | undefined;
@@ -64,23 +64,26 @@ export class LineagePanel {
   }
 
   private async loadLineage(
-    searchTerm: string,
-    upstreamDepth = 2,
-    downstreamDepth = 2
+    fqn: string,
+    upstreamDepth = 1,
+    downstreamDepth = 1
   ): Promise<void> {
     try {
-      await this.panel.webview.postMessage({ type: 'loading', fqn: searchTerm });
-      
-      // Attempt to resolve real FQN via search since users might pass just table name
-      let trueFqn = searchTerm;
-      const found = await this.om.findTable(searchTerm);
-      if (!found) {
-        throw new Error(`Table '${searchTerm}' could not be found in the catalog.`);
+      const trimmedFqn = fqn.trim();
+      if (!trimmedFqn) {
+        throw new Error('A fully qualified name is required to load lineage.');
       }
-      trueFqn = found.fullyQualifiedName;
 
-      const lineage = await this.om.getLineage(trueFqn, 'table', upstreamDepth, downstreamDepth);
-      await this.panel.webview.postMessage({ type: 'lineageData', data: lineage, fqn: trueFqn });
+      log(`LineagePanel load requested for FQN=${trimmedFqn}`);
+      log(`LineagePanel posting loading state for FQN=${trimmedFqn}`);
+      await this.panel.webview.postMessage({ type: 'loading', fqn: trimmedFqn });
+
+      log(`LineagePanel calling OpenMetadata lineage API for FQN=${trimmedFqn}`);
+      const lineage = await this.om.getLineage(trimmedFqn, 'table', upstreamDepth, downstreamDepth);
+      log(`LineagePanel received lineage payload for FQN=${trimmedFqn}`);
+
+      await this.panel.webview.postMessage({ type: 'lineageData', data: lineage, fqn: trimmedFqn });
+      log(`LineagePanel posted lineage data to webview for FQN=${trimmedFqn}`);
     } catch (err) {
       logError('LineagePanel fetch error', err);
       await this.panel.webview.postMessage({
@@ -96,22 +99,18 @@ export class LineagePanel {
         break;
 
       case 'loadLineage':
+        log(`LineagePanel webview requested lineage for ${String(msg.fqn)}`);
         await this.loadLineage(
           String(msg.fqn),
-          Number(msg.upstreamDepth ?? 2),
-          Number(msg.downstreamDepth ?? 2)
+          Number(msg.upstreamDepth ?? 1),
+          Number(msg.downstreamDepth ?? 1)
         );
         break;
 
       case 'nodeClicked':
+        log(`LineagePanel node clicked for ${String(msg.fqn)}`);
         void vscode.commands.executeCommand('metalens.showAssetDetail', String(msg.fqn));
         break;
-
-      case 'requestSearch': {
-        const results = await this.om.searchAssets(String(msg.query), 10);
-        await this.panel.webview.postMessage({ type: 'searchResults', results });
-        break;
-      }
     }
   }
 
