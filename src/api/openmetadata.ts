@@ -75,7 +75,7 @@ export class OpenMetadataClient {
 
   /** Full-text search across all data assets */
   async searchAssets(query: string, limit = 10): Promise<OMSearchResult> {
-    const path = `/search/query?q=${encodeURIComponent(query)}&index=dataAsset&from=0&size=${limit}`;
+    const path = `/search/query?q=${query}&from=0&size=${limit}`;
     return this.fetchJSON<OMSearchResult>(path);
   }
 

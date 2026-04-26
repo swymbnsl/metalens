@@ -226,13 +226,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
       if (!host) return;
 
-      const token = await vscode.window.showInputBox({
-        title: 'MetaLens: Configure OpenMetadata Connection (2/4)',
-        prompt: 'Paste your Bot JWT token',
-        placeHolder: 'eyJhbGci...',
-        password: true,
-        ignoreFocusOut: true,
-      });
+const token = await vscode.window.showInputBox({
+    title: 'MetaLens: Configure OpenMetadata Connection (2/4)',
+    prompt: 'Paste your Bot JWT token',
+    placeHolder: 'eyJhbGci...',
+    value: settings.token,
+    password: true,
+    ignoreFocusOut: true,
+  });
       if (!token) return;
 
       const geminiKey = await vscode.window.showInputBox({
