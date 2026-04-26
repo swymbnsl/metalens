@@ -1,243 +1,291 @@
-# MetaLens — OpenMetadata Intelligence for VS Code
+# MetaLens - Bringing OpenMetadata to your IDE
 
-> **Hackathon:** WeMakeDevs × OpenMetadata "Back to the Metadata" (April 17–26, 2026)  
-> **Tagline:** *Your data catalog, right where you code.*
+<a href="https://github.com/swymbnsl/expenBoard/">
+<p align="center">
+    <img src="media/transparent-logo.png" width="100px"  alt="expenboard logo" align="center">
+  </a>
+<br/>
+  <h3 align="center">MetaLens</h3>
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visualstudiocode)](https://github.com/swymbnsl/metalens)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+<div align="center" >
 
-MetaLens is a **context-aware metadata co-pilot** that brings the full OpenMetadata/Collate semantic layer directly into VS Code. It understands what file you're editing, automatically detects table references, and proactively surfaces rich metadata right where you code — without ever switching to a browser tab.
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visualstudiocode)](https://github.com/swymbnsl/metalens) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
----
+</div>
+<p align="center">
+    <br/>
+    <a href="https://metalens.swymbnsl.com/">View Demo</a>
+    .
+    <a href="https://github.com/swymbnsl/metalens/issues">Report Bug</a>
+    .
+    <a href="https://github.com/swymbnsl/metalens/issues">Request Feature</a>
+  </p>
+
+![Overview](media/demo.gif)
+
+## 📋 Table of Contents
+
+1. [Overview](#-overview)
+2. [How It Works](#-how-it-works)
+3. [Features](#-features)
+4. [Screenshots](#-screenshots)
+5. [Prerequisites](#-prerequisites)
+6. [OpenMetadata SDK](#-openmetadata-sdk)
+7. [Extension Configuration](#️-extension-configuration)
+8. [Core Capabilities](#️-core-capabilities)
+9. [Settings Parameters](#-settings-parameters)
+10. [Usage](#-usage)
+11. [Diagnostics & Results](#-diagnostics--results)
+12. [Troubleshooting](#-troubleshooting)
+13. [Contributing](#-contributing)
+
+## 🚀 Overview
+
+MetaLens is a sophisticated context-aware metadata co-pilot built for VS Code that brings the full OpenMetadata/Collate semantic layer directly into your environment. It automates the process of fetching data intelligence without forcing you to switch tabs.
+
+The tool combines the **OpenMetadata API** for metadata extraction, the **OpenMetadata AI SDK** for smart assistance, and **D3** for visual lineage graph rendering to deliver enterprise-grade metadata capabilities.
+
+## 🔄 How It Works
+
+MetaLens follows a structured approach to data catalog visibility:
+
+1. **Context Acquisition**: Analyzes your active SQL, Python, or dbt file.
+2. **Table Detection**: Automatically extracts table references in your code.
+3. **Authentication**: Uses secure JWT tokens via VS Code SecretStorage.
+4. **Metadata Fetching**: Connects to OpenMetadata to pull schema, metrics, and owner info.
+5. **Rich Rendering**: Displays relevant info via Hover Cards and CodeLens actions.
+6. **Diagnostic Verification**: Runs checks for internal freshness and PII elements on document save.
+7. **Lineage Graphing**: Seamlessly traverses upstream/downstream dependencies.
+8. **AI Chat Context**: Auto-injects found table references into an embedded AI co-pilot.
+9. **Action Write-back**: Validates updates (like editing descriptions) and pushes them back via JSON Patch API.
+10. **Results Delivery**: Surfaces Data Quality scores and asset insights clearly.
 
 ## ✨ Features
 
-### 🗂️ Inline Hover Cards
-Hover over any table or column name in SQL, Python, dbt YAML, or Jinja-SQL files to instantly see:
-- Schema, database, owner, and domain
-- PII-tagged columns (highlighted with ⚠️)
-- Data freshness (last updated timestamp)
-- Tier classification and tags
-- Quick-action links: Open in Collate, View Lineage, Ask AI
+- **Inline Hover Cards**: Display schema, database, owner, PII-tags, freshness, and tiers instantly.
+- **AI Chat Panel**: Powered by streaming from the OpenMetadata AI SDK with contextual table injection.
+- **Interactive Lineage Visualization**: Zoomable up/downstream dependencies using D3 SVG graphics.
+- **CodeLens Actions**: Above-query shortcuts for explainability, data quality, lineage, and editing.
+- **On-Save Diagnostics**: Squiggle integrations for PII warnings and data freshness.
+- **Asset Detail Panel**: Rich read/write UI panel mimicking Collate.
+- **Metadata Quick Search**: Live semantic search across overall assets.
+- **Secure Handling**: Connect natively with safe SecretStorage tokens.
 
-### 🤖 AI Chat Panel (OpenMetadata AI SDK)
-Pre-seeded with your workspace context — opens with detected table names already loaded as context badges:
-- Powered by the **OpenMetadata AI SDK** with streaming responses
-- Choose any AI Studio agent (AskCollateAgent, DataQualityPlannerAgent, LineageAgent, etc.)
-- Auto-injects active file's table names as context
-- Action chips after each response: View Lineage, Asset Detail
+## 📸 Screenshots
 
-### 🔗 Interactive Lineage Visualization
-D3-powered SVG lineage graph inside VS Code:
-- Upstream/downstream traversal with configurable depth (1–5 levels)
-- Color-coded by asset type (table, pipeline, dashboard, topic, ML model)
-- Zoom/pan with mouse wheel and drag
-- Click any node to open its Asset Detail panel
+### Lineage Panel
 
-### 🔍 CodeLens Actions
-Above every SQL query and table reference:
-- `▶ Explain this query` — AI explains query logic using metadata context
-- `🔍 Lineage: {table}` — jumps straight to lineage view
-- `⚠️ Data Quality` — shows DQ test pass/fail results
-- `📝 Add Description` — edit table description and push back to catalog
+![alt text](media/lineage.png)
 
-### 🩺 On-Save Diagnostics
-When saving SQL, Python, or dbt YAML files:
-- **PII warnings** (`metalens.pii`): Flags columns tagged PII_SENSITIVE/PII_NONSENSITIVE with yellow squiggles
-- **Freshness alerts** (`metalens.freshness`): Info-level diagnostics when tables haven't been updated in 7+ days
-- Status bar flash: `$(database) MetaLens: N table(s) detected. Hover for metadata.`
+### Asset Details Panel
 
-### 📦 Asset Detail Panel
-Rich read/write panel for any catalog asset:
-- Full column table with types, tags, and descriptions
-- Editable description with push-back to OpenMetadata via JSON Patch API
-- Data quality test results (pass/fail counts)
-- Vote on assets (👍 / 👎)
-- "Open in Collate" button
+![alt text](media/asset-details.png)
 
-### 🔎 Metadata Quick Search
-`Ctrl+Shift+Alt+M` → live semantic search across all data assets:
-- Results show entity type icon, FQN, owner, description preview
-- Actions: View Details, Show Lineage, or Insert FQN into editor
+### AI Chat Panel
 
-### 🔒 Secure Configuration
-- JWT token stored in VS Code **SecretStorage** (not plaintext settings)
-- First-run wizard: `MetaLens: Configure Connection` walks you through host, token, and agent selection
+![alt text](media/ai-chat.png)
 
----
+### CodeLens Panel
 
-## 🚀 Quick Start
+![alt text](media/codelens.png)
 
-### 1. Install the Extension
+### Commands Panel
 
-**From `.vsix` file (Hackathon Demo):**
+![alt text](media/commands.png)
+
+## 📋 Prerequisites
+
+### Environment Requirements
+
+- **VS Code** (v1.85.0+)
+- **OpenMetadata/Collate Server** URL host
+- **Bot/Service PAT (Personal Access Token)** for authentication
+- Active **Node/NPM** environment (if building from source)
+
+### Project Requirements
+
+- Files in format: `.sql`, `.py`, dbt YAML, Jinja-SQL
+- Workspace open in VS Code
+
+## 🔧 OpenMetadata SDK
+
+MetaLens utilizes the following API endpoints and plugins:
+
+### Core Endpoints
+
+- `GET /api/v1/search/query` - Assets resolving
+- `GET /api/v1/tables/name/{fqn}` - Extract table features
+- `GET /api/v1/lineage/table/name/{fqn}` - Structural connectivity
+- `PATCH /api/v1/tables/{id}` - Modification payloads
+- `GET /api/v1/dataQuality/testCases` - Validation tasks
+
+### AI SDK Integrations
+
+- `@openmetadata/ai-sdk` - Connect to agent apps
+- Streaming responses for standard model generations
+
+## ⚙️ Extension Configuration
+
+The tool runs a fast setup with zero pain points:
+
+### Connection Settings
+
+- **Namespace**: `MetaLens: Configure Connection`
+- **Purpose**: Securely walk through host, token, and agent choices over wizard form.
+- **Key Tasks**: Storing keys, caching instance URIs.
+
+## 🌪️ Core Capabilities
+
+### 1. **Inline Investigation**
+
+- Hovers text to expose OpenMetadata stats.
+- Configurable domain and ownership layers.
+- Validates data boundaries easily.
+
+### 2. **Contextual GenAI Assistant**
+
+- Pre-seeded AI Studio agent interaction limitlessly in VS Code.
+- Configurable prompt types (`AskCollateAgent`, etc)
+- Extends standard explainability directly in editor.
+
+### 3. **Lineage Analysis**
+
+- Introduces complete tracking logic visually.
+- Configurable depth scanning (1-5 layers).
+- Tests data source roots interactively.
+
+### 4. **Bi-directional Integration**
+
+- Write operations allowing asset modifications locally.
+- Easy rating triggers like upvote/downvote structures.
+- Direct JSON patching.
+
+## 📝 Settings Parameters
+
+### Workspace Settings
+
+| Parameter                    | Type    | Description                                                    | Default             |
+| ---------------------------- | ------- | -------------------------------------------------------------- | ------------------- |
+| `metalens.host`              | STRING  | OpenMetadata/Collate host URL                                  | `""`                |
+| `metalens.token`             | STRING  | Bot PAT (Personal Access Token) for authentication             | `""`                |
+| `metalens.geminiKey`         | STRING  | Google Gemini API Key to use for OpenMetadata MCP integrations | `""`                |
+| `metalens.defaultAgent`      | SELECT  | Default AI Studio agent                                        | `"AskCollateAgent"` |
+| `metalens.onSaveSuggestions` | BOOLEAN | Enable on-save metadata detection                              | `true`              |
+| `metalens.piiDiagnostics`    | BOOLEAN | Enable PII diagnostic warnings                                 | `true`              |
+| `metalens.cacheSeconds`      | INT     | Metadata cache TTL in seconds                                  | `300`               |
+
+## 🚀 Usage
+
+### 1. Installation Execution
+
 ```bash
+# General setup
 code --install-extension metalens-0.1.0.vsix
-```
-
-**From source:**
-```bash
-git clone https://github.com/swymbnsl/metalens.git
-cd metalens
-npm install
-npm run build:all
-# Press F5 in VS Code to launch Extension Development Host
 ```
 
 ### 2. Configure Connection
 
-Open the Command Palette (`Ctrl+Shift+P`) and run:
-```
+```yaml
+# Open the Command Palette (Ctrl+Shift+P) and run:
 MetaLens: Configure Connection
+
+# Insert Requirements:
+1. OpenMetadata URL
+2. PAT (Personal Access Token)
+3. Gemini Key
 ```
 
-Enter:
-1. Your OpenMetadata or Collate host URL (e.g., `https://your-org.getcollate.io`)
-2. Your Bot JWT token (stored securely)
-3. Select a default AI agent
+### 3. Execution Commands
 
-### 3. Start Using MetaLens
+- `MetaLens: Open AI Chat`
+- `MetaLens: Search Data Assets`
+- `MetaLens: Clear Metadata Cache`
 
-Open any `.sql`, `.py`, or dbt YAML file. MetaLens will:
-- Show metadata hover cards when you hover table names
-- Display CodeLens actions above queries
-- Run PII/freshness diagnostics on save
-- Pre-seed the AI Chat with detected table context
+## 📊 Diagnostics & Results
 
----
+### On-Save Validations
 
-## ⌨️ Commands & Keybindings
+MetaLens evaluates the following heuristics on file save:
 
-| Command | Description | Keybinding |
-|---------|-------------|-----------|
-| `MetaLens: Open AI Chat` | Open the AI Chat panel | `Ctrl+Shift+M` |
-| `MetaLens: Search Data Assets` | Live semantic search | `Ctrl+Shift+Alt+M` |
-| `MetaLens: Show Lineage for Table` | Open lineage visualization | — |
-| `MetaLens: Explain Selected Query` | AI query explanation | Right-click menu |
-| `MetaLens: Show Asset Details` | Open asset detail panel | — |
-| `MetaLens: Configure Connection` | Setup wizard | — |
-| `MetaLens: Clear Metadata Cache` | Clear 5-min metadata cache | — |
-| `MetaLens: Check Data Quality` | Show DQ test results | — |
-| `MetaLens: Add/Edit Description` | Edit and push back description | — |
+- **PII Integrity**: Shows yellow diagnostic warnings if columns hold PII.
+- **Freshness Validity**: Info-flags instances where data hasn't seen updates cleanly.
+- **Extraction Rate**: Status bar logs detected metadata footprints.
 
----
+### Diagnostics Criteria
 
-## ⚙️ Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `metalens.host` | `""` | OpenMetadata/Collate host URL |
-| `metalens.token` | `""` | Legacy plaintext token (use SecretStorage via wizard instead) |
-| `metalens.defaultAgent` | `"AskCollateAgent"` | Default AI Studio agent |
-| `metalens.onSaveSuggestions` | `true` | Enable on-save metadata detection |
-| `metalens.piiDiagnostics` | `true` | Enable PII diagnostic warnings |
-| `metalens.cacheSeconds` | `300` | Metadata cache TTL in seconds |
-
----
-
-## 🛠️ Development Setup
+Alerts are mapped functionally inside your file boundaries:
 
 ```bash
+✅ PASSED: Data freshness updated under 7 days AND No PII tags
+⚠️ FAILED: Older data timestamps OR Found PII tags flag squiggle lines
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 1. Connection Failures
+
+```bash
+# Check your host format matches standard urls (e.g. https://your-org.getcollate.io)
+# Ensure API keys are active
+```
+
+#### 2. Hover Cards Missing
+
+```bash
+# Verify MetaLens recognizes your file type (.py, .sql, .yml)
+# Refresh cache via `MetaLens: Clear Metadata Cache` command
+```
+
+### Debug Commands
+
+```bash
+# Trigger re-lint
+Ctrl+S across editor
+
+# View full logs via output panel
+Output -> MetaLens
+```
+
+## 🤝 Contributing
+
+We welcome contributions to MetaLens! Please follow these guidelines:
+
+1. **Fork** the repository
+2. **Create** a feature branch
+3. **Implement** your changes
+4. **Test** thoroughly (`npm test`)
+5. **Submit** a pull request
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/swymbnsl/metalens.git
+
 # Install dependencies
 npm install
 
-# Build extension host
-npm run build
-
-# Build webview bundles (React + D3)
-npm run build:webview
-
-# Build both
+# Build everything
 npm run build:all
-
-# Watch mode (extension)
-npm run watch
 
 # Run unit tests
 npm test
-
-# Package .vsix
-npm run package
 ```
-
-### Project Structure
-
-```
-metalens/
-├── src/
-│   ├── extension.ts          # Entry point — activate/deactivate
-│   ├── api/                  # OpenMetadata REST + AI SDK clients
-│   ├── providers/            # Hover, CodeLens, Diagnostics, Search
-│   ├── parsers/              # SQL, Python, dbt table extractors
-│   ├── panels/               # Chat, Lineage, AssetDetail webview hosts
-│   ├── cache/                # In-memory LRU cache (5min TTL)
-│   ├── statusBar/            # Connection indicator
-│   ├── onSave/               # On-save orchestrator
-│   └── utils/                # Logger, FQN helpers, notifications
-├── webview-ui/
-│   ├── chat/                 # React chat UI with streaming
-│   ├── lineage/              # D3 lineage graph
-│   └── asset-detail/         # Asset detail + edit panel
-├── test/
-│   └── unit/                 # Vitest unit tests (32 tests, all passing)
-└── demo/queries/             # Sample SQL files for demo
-```
-
----
-
-## 📺 Demo Script (Hackathon)
-
-1. Open `demo/queries/revenue_report.sql`
-2. **Save the file** → watch the status bar flash "3 tables detected"
-3. **Hover** over `orders` → see hover card with owner, PII columns, schema
-4. Click **CodeLens `🔍 Lineage: orders`** → see the D3 lineage graph
-5. Click **`▶ Explain this query`** → AI Chat opens, pre-seeded with table context
-6. Ask: *"Are there any data quality issues with the orders table?"*
-7. Watch the **streamed AI response** with DQ results
-8. In the Asset Detail panel, click **✏️ Edit** → update description → **Save to Catalog**
-
----
-
-## 🔧 OpenMetadata API & AI SDK
-
-MetaLens uses these OpenMetadata API endpoints:
-
-| Feature | Endpoint |
-|---------|---------|
-| Connection test | `GET /api/v1/system/config` |
-| Search assets | `GET /api/v1/search/query?q={q}&index=dataAsset` |
-| Get table | `GET /api/v1/tables/name/{fqn}?fields=columns,tags,owners` |
-| Lineage | `GET /api/v1/lineage/table/name/{fqn}?upstreamDepth=2&downstreamDepth=2` |
-| Data quality | `GET /api/v1/dataQuality/testCases?entityLink=...` |
-| Update description | `PATCH /api/v1/tables/{id}` (JSON Patch) |
-| Vote | `PUT /api/v1/tables/{id}/vote` |
-| List agents | `GET /api/v1/apps?limit=50` |
-
-AI streaming uses the **`@openmetadata/ai-sdk`** with a REST fallback:
-```typescript
-// Streaming via SDK
-for await (const event of sdk.agent('AskCollateAgent').stream(prompt)) {
-  if (event.type === 'content') yield event.content;
-}
-```
-
----
-
-## 🆚 MetaLens vs. Basic Chat Port (GitHub Issue #26650)
-
-| Dimension | Basic Port | MetaLens |
-|-----------|-----------|---------|
-| **Trigger** | User opens, types | Auto on save + cursor-aware |
-| **Context** | Manual | Auto-detected from active file |
-| **Hover Cards** | ❌ | ✅ Rich inline metadata |
-| **Diagnostics** | ❌ | ✅ PII + freshness warnings |
-| **CodeLens** | ❌ | ✅ Explain, Lineage, DQ, Edit |
-| **Lineage Panel** | ❌ | ✅ Interactive D3 graph |
-| **Write-back** | ❌ | ✅ Edit descriptions, vote |
-| **Agent Selection** | Single | Multi-agent picker |
 
 ---
 
 ## 📄 License
 
-MIT — see [LICENSE](./LICENSE)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **OpenMetadata** team for the excellent data cataloging standard
+- **D3.js** community for graphical mapping
+- **VS Code Extension API** documentation
+
+---
+
+**MetaLens**: Your data catalog, right where you code! ��
