@@ -81,7 +81,7 @@ export class OpenMetadataClient {
 
   /** Get table metadata by fully qualified name */
   async getTableByFQN(fqn: string): Promise<OMTable> {
-    const path = `/tables/name/${encodeURIComponent(fqn)}?fields=columns,tags,owners,followers,dataModel,domain,extension`;
+    const path = `/tables/name/${fqn}`;
     return this.fetchJSON<OMTable>(path);
   }
 
@@ -108,7 +108,7 @@ export class OpenMetadataClient {
     upstreamDepth = 3,
     downstreamDepth = 3,
   ): Promise<OMLineageResponse> {
-    const path = `/lineage/${entityType}/name/${encodeURIComponent(fqn)}?upstreamDepth=${upstreamDepth}&downstreamDepth=${downstreamDepth}`;
+    const path = `/lineage/${entityType}/name/${fqn}?upstreamDepth=${upstreamDepth}&downstreamDepth=${downstreamDepth}`;
     log(
       `Preparing lineage request for entityType=${entityType}, fqn=${fqn}, upstreamDepth=${upstreamDepth}, downstreamDepth=${downstreamDepth}`,
     );
