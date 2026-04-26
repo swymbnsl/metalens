@@ -1,0 +1,187 @@
+{
+  "name": "metalens",
+  "displayName": "MetaLens — OpenMetadata for VS Code",
+  "description": "Bring your OpenMetadata/Collate data catalog into VS Code with inline metadata, AI chat, lineage visualization, and PII diagnostics.",
+  "version": "0.1.0",
+  "publisher": "metalens",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Data Science", "Other"],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "MetaLens",
+      "properties": {
+        "metalens.host": {
+          "type": "string",
+          "default": "",
+          "description": "OpenMetadata or Collate server URL (e.g. https://your-org.getcollate.io)"
+        },
+        "metalens.token": {
+          "type": "string",
+          "default": "",
+          "description": "Bot JWT token for authentication"
+        },
+        "metalens.defaultAgent": {
+          "type": "string",
+          "default": "AskCollateAgent",
+          "description": "Default AI Studio agent name to use in Chat"
+        },
+        "metalens.onSaveSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show metadata suggestions when a file is saved"
+        },
+        "metalens.piiDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show diagnostic warnings for PII-tagged columns"
+        },
+        "metalens.cacheSeconds": {
+          "type": "number",
+          "default": 300,
+          "description": "Metadata cache TTL in seconds"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "metalens.openChat",
+        "title": "MetaLens: Open AI Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "metalens.searchAssets",
+        "title": "MetaLens: Search Data Assets",
+        "icon": "$(search)"
+      },
+      {
+        "command": "metalens.showLineage",
+        "title": "MetaLens: Show Lineage for Table",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "metalens.explainQuery",
+        "title": "MetaLens: Explain Selected Query",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "metalens.showAssetDetail",
+        "title": "MetaLens: Show Asset Details",
+        "icon": "$(info)"
+      },
+      {
+        "command": "metalens.configure",
+        "title": "MetaLens: Configure Connection",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "metalens.clearCache",
+        "title": "MetaLens: Clear Metadata Cache",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "metalens.checkDataQuality",
+        "title": "MetaLens: Check Data Quality",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "metalens.addDescription",
+        "title": "MetaLens: Add/Edit Description",
+        "icon": "$(edit)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "metalens-sidebar",
+          "title": "MetaLens",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "metalens-sidebar": [
+        {
+          "type": "webview",
+          "id": "metalens.chatView",
+          "name": "AI Chat"
+        },
+        {
+          "id": "metalens.assetsView",
+          "name": "Detected Assets"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "metalens.explainQuery",
+          "when": "editorHasSelection",
+          "group": "metalens@1"
+        },
+        {
+          "command": "metalens.showLineage",
+          "group": "metalens@2"
+        },
+        {
+          "command": "metalens.searchAssets",
+          "group": "metalens@3"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "metalens.openChat",
+          "when": "view == metalens.chatView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "metalens.openChat",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "metalens.searchAssets",
+        "key": "ctrl+shift+alt+m",
+        "mac": "cmd+shift+alt+m"
+      }
+    ]
+  },
+  "dependencies": {
+    "node-sql-parser": "^4.18.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/d3": "^7.4.0",
+    "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "d3": "^7.9.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0"
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:webview": "node scripts/build-webview.mjs",
+    "build:all": "npm run build && npm run build:webview",
+    "watch": "node esbuild.mjs --watch",
+    "package": "vsce package",
+    "test": "vitest run",
+    "test:integration": "node ./test/integration/runTests.js",
+    "lint": "eslint src --ext ts",
+    "compile": "tsc -p tsconfig.json"
+  }
+}

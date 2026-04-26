@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "outDir": "webview-ui/dist",
+    "rootDir": "webview-ui",
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "declaration": false,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "types": ["react", "react-dom", "node"]
+  },
+  "include": ["webview-ui/**/*.tsx", "webview-ui/**/*.ts"],
+  "exclude": ["node_modules", "out"]
+}
