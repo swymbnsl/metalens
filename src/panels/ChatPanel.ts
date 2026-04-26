@@ -161,6 +161,9 @@ export class ChatPanel {
     const scriptUri = this.panel.webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'chat.js')
     );
+    const cssUri = this.panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'chat.css')
+    );
     const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
@@ -170,6 +173,7 @@ export class ChatPanel {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; font-src ${this.panel.webview.cspSource}; img-src ${this.panel.webview.cspSource} data: https:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MetaLens Chat</title>
+  <link rel="stylesheet" href="${cssUri}">
 </head>
 <body>
   <div id="root"></div>

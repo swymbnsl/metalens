@@ -4,8 +4,19 @@
   "description": "Bring your OpenMetadata/Collate data catalog into VS Code with inline metadata, AI chat, lineage visualization, and PII diagnostics.",
   "version": "0.1.0",
   "publisher": "metalens",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Data Science", "Other"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swymbnsl/metalens.git"
+  },
+  "homepage": "https://github.com/swymbnsl/metalens#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Data Science",
+    "Other"
+  ],
   "icon": "media/icon.png",
   "activationEvents": [
     "onStartupFinished"
@@ -157,21 +168,22 @@
     "node-sql-parser": "^4.18.0"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
+    "@eslint/js": "^9.0.0",
+    "@types/d3": "^7.4.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@types/d3": "^7.4.0",
-    "@vscode/test-electron": "^2.3.0",
-    "esbuild": "^0.21.0",
-    "typescript": "^5.4.0",
-    "vitest": "^1.5.0",
+    "@types/vscode": "^1.85.0",
     "@vitejs/plugin-react": "^4.2.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.9.1",
+    "d3": "^7.9.0",
+    "esbuild": "^0.21.0",
+    "eslint": "^9.0.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "d3": "^7.9.0",
-    "@eslint/js": "^9.0.0",
-    "eslint": "^9.0.0"
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
   },
   "scripts": {
     "build": "node esbuild.mjs",
