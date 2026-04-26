@@ -1,11 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import './styles/chat.css';
-import { useChat } from './hooks/useChat';
-
-declare function acquireVsCodeApi(): {
-  postMessage(msg: unknown): void;
-};
-const vscode = acquireVsCodeApi();
+import { useChat, vscode } from './hooks/useChat';
 
 // Very lightweight markdown renderer (no external dependency needed)
 function renderMarkdown(text: string): string {
@@ -113,16 +108,15 @@ export default function App(): React.ReactElement {
           value={selectedAgent}
           onChange={e => setSelectedAgent(e.target.value)}
         >
-          <option value="AskCollateAgent">AskCollateAgent</option>
-          <option value="DataQualityPlannerAgent">DataQualityPlannerAgent</option>
-          <option value="LineageAgent">LineageAgent</option>
-          {agents
-            .filter(a => !['AskCollateAgent', 'DataQualityPlannerAgent', 'LineageAgent'].includes(a.name))
-            .map(a => (
+          {agents.length === 0 ? (
+            <option value="">No Agents Found</option>
+          ) : (
+            agents.map(a => (
               <option key={a.name} value={a.name}>
                 {a.displayName ?? a.name}
               </option>
-            ))}
+            ))
+          )}
         </select>
       </div>
 

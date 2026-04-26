@@ -1,118 +1,160 @@
-/**
- * Wrapper around the @openmetadata/ai-sdk for agent invocation and streaming.
- * Falls back to a direct fetch-based approach since the SDK may not be installed.
- */
+import { getSettings } from '../config/settings';
+import { GoogleGenAI, Type } from '@google/genai';
+import type { OpenMetadataClient } from './openmetadata';
+
+interface TableContext {
+  name: string;
+  fqn: string;
+  description?: string;
+  columns: Array<{
+    name: string;
+    dataType: string;
+    description?: string;
+  }>;
+  tags?: string[];
+  owner?: string;
+}
+
 export class AISdkClient {
   constructor(
     private host: string,
-    private token: string
+    private token: string,
+    private omClient?: OpenMetadataClient
   ) {}
 
+  updateConfig(host: string, token: string, omClient?: OpenMetadataClient): void {
+    this.host = host;
+    this.token = token;
+    this.omClient = omClient;
+  }
+
+  private getGeminiContext() {
+    const key = getSettings().geminiKey;
+    if (!key) {
+      throw new Error("Missing Google Gemini API Key. Please run 'MetaLens: Configure Connection' to provide your API key.");
+    }
+    return new GoogleGenAI({ apiKey: key });
+  }
+
   /**
-   * Stream a response from a named AI Studio agent.
-   * Uses the OpenMetadata AI endpoint with SSE streaming.
+   * Extract table names from SQL query
    */
-  async *streamResponse(
-    agentName: string,
-    prompt: string,
-    conversationId?: string
-  ): AsyncGenerator<string> {
-    const body: Record<string, unknown> = {
-      message: prompt,
-      agentName,
-    };
-    if (conversationId) {
-      body.conversationId = conversationId;
+  private extractTableNames(sql: string): string[] {
+    const tableRegex = /(?:FROM|JOIN)\s+([a-zA-Z_][\w.]*)/gi;
+    const tables: string[] = [];
+    let match;
+    while ((match = tableRegex.exec(sql)) !== null) {
+      tables.push(match[1]);
+    }
+    return [...new Set(tables)];
+  }
+
+  /**
+   * Fetch metadata context for tables mentioned in the query
+   */
+  private async fetchTableContexts(tableNames: string[]): Promise<TableContext[]> {
+    if (!this.omClient) {
+      return [];
     }
 
-    try {
-      // Try to use @openmetadata/ai-sdk if available
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { AISdk } = require('@openmetadata/ai-sdk');
-      const sdk = new AISdk({ host: this.host, token: this.token });
-      for await (const event of sdk.agent(agentName).stream(prompt)) {
-        if (event.type === 'content' && event.content) {
-          yield event.content as string;
+    const contexts: TableContext[] = [];
+    for (const tableName of tableNames) {
+      try {
+        // Try to find the table in OpenMetadata
+        const table = await this.omClient.findTable(tableName);
+        if (table) {
+          contexts.push({
+            name: table.name,
+            fqn: table.fullyQualifiedName,
+            description: table.description,
+            columns: table.columns?.map(col => ({
+              name: col.name,
+              dataType: col.dataType,
+              description: col.description
+            })) || [],
+            tags: table.tags?.map(t => t.tagFQN) || [],
+            owner: table.owners?.[0]?.displayName || table.owners?.[0]?.name
+          });
         }
+      } catch (e) {
+        // Table not found, skip
+        console.log(`Table ${tableName} not found in catalog`);
       }
-      return;
-    } catch {
-      // SDK not available — fall back to REST
     }
+    return contexts;
+  }
 
-    // Fallback: use the OpenMetadata AI REST API directly
-    const res = await fetch(`${this.host}/api/v1/apps/name/${encodeURIComponent(agentName)}/chat`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      throw new Error(`AI SDK error ${res.status}: ${await res.text()}`);
-    }
-
-    if (!res.body) {
-      const text = await res.text();
-      yield text;
-      return;
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') return;
-          try {
-            const parsed = JSON.parse(data) as { content?: string; type?: string };
-            if (parsed.content) yield parsed.content;
-          } catch {
-            if (data) yield data;
+  /**
+   * Build system instruction with table context
+   */
+  private buildSystemInstruction(tableContexts: TableContext[]): string {
+    let context = 'You are an intelligent data catalog assistant powered by OpenMetadata.';
+    
+    if (tableContexts.length > 0) {
+      context += '\n\nYou have access to the following table metadata:\n\n';
+      for (const table of tableContexts) {
+        context += `Table: ${table.name} (${table.fqn})\n`;
+        if (table.description) {
+          context += `Description: ${table.description}\n`;
+        }
+        if (table.columns && table.columns.length > 0) {
+          context += 'Columns:\n';
+          for (const col of table.columns) {
+            context += `  - ${col.name} (${col.dataType})${col.description ? `: ${col.description}` : ''}\n`;
           }
         }
+        if (table.tags && table.tags.length > 0) {
+          context += `Tags: ${table.tags.join(', ')}\n`;
+        }
+        context += '\n';
+      }
+    }
+
+    context += '\nUse this metadata context to provide accurate and helpful responses about the data.';
+    return context;
+  }
+
+  /**
+   * Stream a response from Gemini with metadata context
+   */
+  async *streamResponse(
+    _agentName: string,
+    prompt: string,
+  ): AsyncGenerator<string> {
+    const ai = this.getGeminiContext();
+
+    // Extract table names and fetch metadata context
+    const tableNames = this.extractTableNames(prompt);
+    const tableContexts = await this.fetchTableContexts(tableNames);
+    
+    const systemInstruction = this.buildSystemInstruction(tableContexts);
+
+    // Create chat session
+    const chat = ai.chats.create({
+      model: 'gemini-2.5-flash',
+      config: {
+        systemInstruction: systemInstruction,
+      }
+    });
+
+    // Send message and stream response
+    const stream = await chat.sendMessageStream({ message: prompt });
+
+    for await (const chunk of stream) {
+      if (chunk.text) {
+        yield chunk.text;
       }
     }
   }
 
   /**
-   * Non-streaming agent call.
+   * Non-streaming agent call (optional convenience)
    */
   async ask(agentName: string, prompt: string): Promise<string> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { AISdk } = require('@openmetadata/ai-sdk');
-      const sdk = new AISdk({ host: this.host, token: this.token });
-      const response = await sdk.agent(agentName).call(prompt) as { response: string };
-      return response.response;
-    } catch {
-      // fallback
+    let result = '';
+    for await (const chunk of this.streamResponse(agentName, prompt)) {
+      result += chunk;
     }
-
-    const res = await fetch(`${this.host}/api/v1/apps/name/${encodeURIComponent(agentName)}/chat`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message: prompt, agentName }),
-    });
-
-    if (!res.ok) throw new Error(`AI error: ${res.status}`);
-    const data = (await res.json()) as { response?: string; content?: string };
-    return data.response ?? data.content ?? '';
+    return result;
   }
 }

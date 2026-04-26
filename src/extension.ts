@@ -30,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Core dependencies
   const cache = new MetadataCache(settings.cacheSeconds);
   const omClient = new OpenMetadataClient(settings.host, settings.token, cache);
-  const aiClient = new AISdkClient(settings.host, settings.token);
+  const aiClient = new AISdkClient(settings.host, settings.token, omClient);
 
   // Status bar
   const statusBar = new StatusBarItem();
@@ -227,7 +227,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!host) return;
 
       const token = await vscode.window.showInputBox({
-        title: 'MetaLens: Configure OpenMetadata Connection (2/3)',
+        title: 'MetaLens: Configure OpenMetadata Connection (2/4)',
         prompt: 'Paste your Bot JWT token',
         placeHolder: 'eyJhbGci...',
         password: true,
@@ -235,14 +235,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
       if (!token) return;
 
-      // Save host in settings, token in secure storage
+      const geminiKey = await vscode.window.showInputBox({
+        title: 'MetaLens: Configure OpenMetadata Connection (3/4)',
+        prompt: 'Paste your Google Gemini API Key (needed for AI Chat using v1.12+ MCP Tools)',
+        placeHolder: 'AIza...',
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (!geminiKey) return;
+
+      // Save host & gemini in settings, token in secure storage
       await vscode.workspace.getConfiguration('metalens').update('host', host, true);
+      await vscode.workspace.getConfiguration('metalens').update('geminiKey', geminiKey, true);
       await saveTokenSecurely(context, token);
 
       // Test connection
       const testClient = new OpenMetadataClient(host, token, new MetadataCache(300));
       const ok = await testClient.ping();
       if (ok) {
+    // Update global client singletons without needing a restart
+    omClient.updateConfig(host, token);
+    aiClient.updateConfig(host, token, omClient);
+
         void vscode.window.showInformationMessage('MetaLens: ✓ Connected to OpenMetadata successfully!');
         statusBar.setConnected(true);
 

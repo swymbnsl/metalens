@@ -7,6 +7,7 @@ export interface MetaLensSettings {
   onSaveSuggestions: boolean;
   piiDiagnostics: boolean;
   cacheSeconds: number;
+  geminiKey: string;
 }
 
 export function getSettings(): MetaLensSettings {
@@ -18,6 +19,7 @@ export function getSettings(): MetaLensSettings {
     onSaveSuggestions: config.get<boolean>('onSaveSuggestions') ?? true,
     piiDiagnostics: config.get<boolean>('piiDiagnostics') ?? true,
     cacheSeconds: config.get<number>('cacheSeconds') ?? 300,
+    geminiKey: config.get<string>('geminiKey') ?? '',
   };
 }
 

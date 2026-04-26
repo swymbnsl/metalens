@@ -14,6 +14,11 @@ export class OpenMetadataClient {
     private cache: MetadataCache
   ) {}
 
+  updateConfig(host: string, token: string): void {
+    this.host = host;
+    this.token = token;
+  }
+
   private async fetchJSON<T>(path: string, skipCache = false): Promise<T> {
     const cacheKey = path;
     if (!skipCache) {
@@ -33,6 +38,11 @@ export class OpenMetadataClient {
     if (!res.ok) {
       throw new Error(`OpenMetadata API ${res.status} ${res.statusText}: ${path}`);
     }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(`Invalid response format from OpenMetadata API (expected JSON, got ${contentType || 'unknown'}). Endpoint: ${path}`);
+    }
+    
     const data = (await res.json()) as T;
     if (!skipCache) {
       this.cache.set(cacheKey, data);
@@ -99,11 +109,11 @@ export class OpenMetadataClient {
     return this.fetchJSON<OMDataQualityResult>(path, true);
   }
 
-  /** Get available AI Studio apps/agents */
+  /** Get available AI Studio agents */
   async getAIAgents(): Promise<OMAIApp[]> {
     try {
-      const result = await this.fetchJSON<{ data: OMAIApp[] }>('/apps?limit=50');
-      return (result?.data ?? []).filter(app => app.appType === 'botApp' || app.name.includes('Agent'));
+      const result = await this.fetchJSON<{ data: OMAIApp[] }>('/agents/dynamic?limit=50');
+      return result?.data ?? [];
     } catch {
       return [];
     }

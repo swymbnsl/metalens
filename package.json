@@ -41,6 +41,11 @@
           "default": "AskCollateAgent",
           "description": "Default AI Studio agent name to use in Chat"
         },
+        "metalens.geminiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Google Gemini API Key to use for OpenMetadata MCP integrations"
+        },
         "metalens.onSaveSuggestions": {
           "type": "boolean",
           "default": true,
@@ -165,6 +170,8 @@
     ]
   },
   "dependencies": {
+    "@google/genai": "^1.50.1",
+    "@openmetadata/ai-sdk": "^0.1.2",
     "node-sql-parser": "^4.18.0"
   },
   "devDependencies": {

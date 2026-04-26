@@ -64,19 +64,28 @@ export class LineagePanel {
   }
 
   private async loadLineage(
-    fqn: string,
+    searchTerm: string,
     upstreamDepth = 2,
     downstreamDepth = 2
   ): Promise<void> {
     try {
-      await this.panel.webview.postMessage({ type: 'loading', fqn });
-      const lineage = await this.om.getLineage(fqn, 'table', upstreamDepth, downstreamDepth);
-      await this.panel.webview.postMessage({ type: 'lineageData', data: lineage, fqn });
+      await this.panel.webview.postMessage({ type: 'loading', fqn: searchTerm });
+      
+      // Attempt to resolve real FQN via search since users might pass just table name
+      let trueFqn = searchTerm;
+      const found = await this.om.findTable(searchTerm);
+      if (!found) {
+        throw new Error(`Table '${searchTerm}' could not be found in the catalog.`);
+      }
+      trueFqn = found.fullyQualifiedName;
+
+      const lineage = await this.om.getLineage(trueFqn, 'table', upstreamDepth, downstreamDepth);
+      await this.panel.webview.postMessage({ type: 'lineageData', data: lineage, fqn: trueFqn });
     } catch (err) {
       logError('LineagePanel fetch error', err);
       await this.panel.webview.postMessage({
         type: 'error',
-        message: `Failed to load lineage for ${fqn}: ${err instanceof Error ? err.message : String(err)}`,
+        message: err instanceof Error ? err.message : String(err),
       });
     }
   }

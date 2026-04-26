@@ -6,7 +6,7 @@ declare function acquireVsCodeApi(): {
   setState(state: unknown): void;
 };
 
-const vscode = acquireVsCodeApi();
+export const vscode = acquireVsCodeApi();
 
 export interface ChatMessage {
   id: string;
@@ -36,7 +36,7 @@ export function useChat(): UseChatReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [detectedTables, setDetectedTables] = useState<string[]>([]);
   const [agents, setAgents] = useState<{ name: string; displayName?: string }[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState('AskCollateAgent');
+  const [selectedAgent, setSelectedAgent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const streamingIdRef = useRef<string | null>(null);
 
@@ -63,6 +63,7 @@ export function useChat(): UseChatReturn {
           const agentList = msg.agents as { name: string; displayName?: string }[];
           if (agentList?.length > 0) {
             setAgents(agentList);
+            setSelectedAgent(prev => prev || agentList[0].name);
           }
           break;
         }
@@ -133,7 +134,17 @@ export function useChat(): UseChatReturn {
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAgent, detectedTables]);
+  }, []);
+
+  // Validate and auto-select agent
+  useEffect(() => {
+    if (agents.length > 0 && selectedAgent) {
+      const valid = agents.some(a => a.name === selectedAgent);
+      if (!valid) {
+        setSelectedAgent(agents[0].name);
+      }
+    }
+  }, [agents, selectedAgent]);
 
   const sendMessageWith = useCallback((text: string) => {
     if (!text.trim() || isStreaming) return;
