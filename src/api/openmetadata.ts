@@ -105,8 +105,8 @@ export class OpenMetadataClient {
   async getLineage(
     fqn: string,
     entityType = 'table',
-    upstreamDepth = 1,
-    downstreamDepth = 1,
+    upstreamDepth = 3,
+    downstreamDepth = 3,
   ): Promise<OMLineageResponse> {
     const path = `/lineage/${entityType}/name/${encodeURIComponent(fqn)}?upstreamDepth=${upstreamDepth}&downstreamDepth=${downstreamDepth}`;
     log(

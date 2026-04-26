@@ -7,11 +7,7 @@ export class LineagePanel {
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
 
-  static createOrShow(
-    extensionUri: vscode.Uri,
-    om: OpenMetadataClient,
-    fqn?: string
-  ): void {
+  static createOrShow(extensionUri: vscode.Uri, om: OpenMetadataClient, fqn?: string): void {
     if (LineagePanel.currentPanel) {
       LineagePanel.currentPanel.panel.reveal();
       if (fqn) {
@@ -28,7 +24,7 @@ export class LineagePanel {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [extensionUri],
-      }
+      },
     );
     LineagePanel.currentPanel = new LineagePanel(panel, extensionUri, om, fqn);
   }
@@ -37,24 +33,24 @@ export class LineagePanel {
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     private om: OpenMetadataClient,
-    initialFqn?: string
+    initialFqn?: string,
   ) {
     this.panel = panel;
     this.panel.webview.html = this.getHtml(extensionUri);
 
     this.panel.webview.onDidReceiveMessage(
-      msg => this.handleMessage(msg),
+      (msg) => this.handleMessage(msg),
       null,
-      this.disposables
+      this.disposables,
     );
 
     this.panel.onDidDispose(
       () => {
         LineagePanel.currentPanel = undefined;
-        this.disposables.forEach(d => d.dispose());
+        this.disposables.forEach((d) => d.dispose());
       },
       null,
-      this.disposables
+      this.disposables,
     );
 
     if (initialFqn) {
@@ -63,11 +59,7 @@ export class LineagePanel {
     }
   }
 
-  private async loadLineage(
-    fqn: string,
-    upstreamDepth = 1,
-    downstreamDepth = 1
-  ): Promise<void> {
+  private async loadLineage(fqn: string, upstreamDepth = 3, downstreamDepth = 3): Promise<void> {
     try {
       const trimmedFqn = fqn.trim();
       if (!trimmedFqn) {
@@ -103,7 +95,7 @@ export class LineagePanel {
         await this.loadLineage(
           String(msg.fqn),
           Number(msg.upstreamDepth ?? 1),
-          Number(msg.downstreamDepth ?? 1)
+          Number(msg.downstreamDepth ?? 1),
         );
         break;
 
@@ -116,7 +108,7 @@ export class LineagePanel {
 
   private getHtml(extensionUri: vscode.Uri): string {
     const scriptUri = this.panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'lineage.js')
+      vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'lineage.js'),
     );
     const nonce = this.getNonce();
     return `<!DOCTYPE html>

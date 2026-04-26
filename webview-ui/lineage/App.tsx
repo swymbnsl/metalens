@@ -54,11 +54,11 @@ function layoutNodes(data: LineageData): Map<string, { x: number; y: number }> {
 
   // Simple layered layout
   // Find upstream and downstream sets
-  const upstreamIds = new Set((data.upstreamEdges ?? []).map(e => e.fromEntity));
-  const downstreamIds = new Set((data.downstreamEdges ?? []).map(e => e.toEntity));
+  const upstreamIds = new Set((data.upstreamEdges ?? []).map((e) => e.fromEntity));
+  const downstreamIds = new Set((data.downstreamEdges ?? []).map((e) => e.toEntity));
 
-  const upstreamNodes = allNodes.filter(n => upstreamIds.has(n.id));
-  const downstreamNodes = allNodes.filter(n => downstreamIds.has(n.id));
+  const upstreamNodes = allNodes.filter((n) => upstreamIds.has(n.id));
+  const downstreamNodes = allNodes.filter((n) => downstreamIds.has(n.id));
   const centerX = Math.max(upstreamNodes.length, 1) * H_GAP;
 
   // Center node
@@ -96,8 +96,8 @@ export default function App(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [currentFqn, setCurrentFqn] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [upstreamDepth, setUpstreamDepth] = useState(1);
-  const [downstreamDepth, setDownstreamDepth] = useState(1);
+  const [upstreamDepth, setUpstreamDepth] = useState(3);
+  const [downstreamDepth, setDownstreamDepth] = useState(3);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [transform, setTransform] = useState({ x: 50, y: 0, scale: 1 });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -130,11 +130,14 @@ export default function App(): React.ReactElement {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const loadLineage = useCallback((fqn: string) => {
-    if (!fqn.trim()) return;
-    setCurrentFqn(fqn);
-    vscode.postMessage({ type: 'loadLineage', fqn, upstreamDepth, downstreamDepth });
-  }, [upstreamDepth, downstreamDepth]);
+  const loadLineage = useCallback(
+    (fqn: string) => {
+      if (!fqn.trim()) return;
+      setCurrentFqn(fqn);
+      vscode.postMessage({ type: 'loadLineage', fqn, upstreamDepth, downstreamDepth });
+    },
+    [upstreamDepth, downstreamDepth],
+  );
 
   const handleNodeClick = (node: LineageNode) => {
     vscode.postMessage({ type: 'nodeClicked', fqn: node.fullyQualifiedName });
@@ -143,7 +146,7 @@ export default function App(): React.ReactElement {
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    setTransform(prev => ({
+    setTransform((prev) => ({
       ...prev,
       scale: Math.max(0.3, Math.min(3, prev.scale * scaleFactor)),
     }));
@@ -156,54 +159,134 @@ export default function App(): React.ReactElement {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isPanning.current) return;
-    setTransform(prev => ({
+    setTransform((prev) => ({
       ...prev,
       x: e.clientX - panStart.current.x,
       y: e.clientY - panStart.current.y,
     }));
   };
 
-  const handleMouseUp = () => { isPanning.current = false; };
+  const handleMouseUp = () => {
+    isPanning.current = false;
+  };
 
   const positions = lineageData ? layoutNodes(lineageData) : new Map();
   const allNodes = lineageData ? [lineageData.entity, ...(lineageData.nodes ?? [])] : [];
-  const allEdges = [
-    ...(lineageData?.upstreamEdges ?? []),
-    ...(lineageData?.downstreamEdges ?? []),
-  ];
+  const allEdges = [...(lineageData?.upstreamEdges ?? []), ...(lineageData?.downstreamEdges ?? [])];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--vscode-editor-background)', color: 'var(--vscode-editor-foreground)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'var(--vscode-editor-background)',
+        color: 'var(--vscode-editor-foreground)',
+      }}
+    >
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--vscode-panel-border)', background: 'var(--vscode-sideBar-background)', alignItems: 'center', flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--vscode-panel-border)',
+          background: 'var(--vscode-sideBar-background)',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}
+      >
         <span style={{ fontSize: 18 }}>🔗</span>
         <strong style={{ fontSize: 13, color: '#89b4fa' }}>Lineage</strong>
         <input
-          style={{ flex: 1, background: 'var(--vscode-input-background)', color: 'var(--vscode-input-foreground)', border: '1px solid var(--vscode-panel-border)', borderRadius: 6, padding: '4px 8px', fontSize: 12, outline: 'none' }}
+          style={{
+            flex: 1,
+            background: 'var(--vscode-input-background)',
+            color: 'var(--vscode-input-foreground)',
+            border: '1px solid var(--vscode-panel-border)',
+            borderRadius: 6,
+            padding: '4px 8px',
+            fontSize: 12,
+            outline: 'none',
+          }}
           value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && loadLineage(searchInput)}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && loadLineage(searchInput)}
           placeholder="Enter table FQN to visualize lineage…"
         />
         <button
           onClick={() => loadLineage(searchInput || currentFqn)}
-          style={{ background: '#89b4fa', color: '#1e1e2e', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+          style={{
+            background: '#89b4fa',
+            color: '#1e1e2e',
+            border: 'none',
+            borderRadius: 6,
+            padding: '4px 12px',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
         >
           Load
         </button>
         <label style={{ fontSize: 11, opacity: 0.7 }}>↑{upstreamDepth}</label>
-        <input type="range" min={1} max={5} value={upstreamDepth} onChange={e => setUpstreamDepth(Number(e.target.value))} style={{ width: 60 }} />
+        <input
+          type="range"
+          min={1}
+          max={5}
+          value={upstreamDepth}
+          onChange={(e) => setUpstreamDepth(Number(e.target.value))}
+          style={{ width: 60 }}
+        />
         <label style={{ fontSize: 11, opacity: 0.7 }}>↓{downstreamDepth}</label>
-        <input type="range" min={1} max={5} value={downstreamDepth} onChange={e => setDownstreamDepth(Number(e.target.value))} style={{ width: 60 }} />
-        <button onClick={() => setTransform({ x: 50, y: 0, scale: 1 })} style={{ background: 'transparent', color: 'var(--vscode-editor-foreground)', border: '1px solid var(--vscode-panel-border)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }}>Reset</button>
+        <input
+          type="range"
+          min={1}
+          max={5}
+          value={downstreamDepth}
+          onChange={(e) => setDownstreamDepth(Number(e.target.value))}
+          style={{ width: 60 }}
+        />
+        <button
+          onClick={() => setTransform({ x: 50, y: 0, scale: 1 })}
+          style={{
+            background: 'transparent',
+            color: 'var(--vscode-editor-foreground)',
+            border: '1px solid var(--vscode-panel-border)',
+            borderRadius: 6,
+            padding: '4px 8px',
+            cursor: 'pointer',
+            fontSize: 11,
+          }}
+        >
+          Reset
+        </button>
       </div>
 
       {/* Canvas */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: isPanning.current ? 'grabbing' : 'grab' }}>
+      <div
+        style={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: isPanning.current ? 'grabbing' : 'grab',
+        }}
+      >
         {isLoading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
             <div style={{ textAlign: 'center', opacity: 0.7 }}>
-              <div style={{ fontSize: 36, marginBottom: 12, animation: 'spin 1s linear infinite' }}>⚙️</div>
+              <div style={{ fontSize: 36, marginBottom: 12, animation: 'spin 1s linear infinite' }}>
+                ⚙️
+              </div>
               <div>Loading lineage for {currentFqn}…</div>
               <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </div>
@@ -211,13 +294,29 @@ export default function App(): React.ReactElement {
         )}
 
         {error && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <div style={{ textAlign: 'center', color: '#f38ba8', padding: 24 }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
               <div>{error}</div>
               <button
                 onClick={() => loadLineage(currentFqn)}
-                style={{ marginTop: 12, background: '#89b4fa', color: '#1e1e2e', border: 'none', borderRadius: 6, padding: '6px 16px', cursor: 'pointer' }}
+                style={{
+                  marginTop: 12,
+                  background: '#89b4fa',
+                  color: '#1e1e2e',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 16px',
+                  cursor: 'pointer',
+                }}
               >
                 Retry
               </button>
@@ -226,11 +325,26 @@ export default function App(): React.ReactElement {
         )}
 
         {!isLoading && !error && !lineageData && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, textAlign: 'center', padding: 24 }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.5,
+              textAlign: 'center',
+              padding: 24,
+            }}
+          >
             <div>
               <div style={{ fontSize: 64, marginBottom: 16 }}>🔗</div>
-              <div style={{ fontSize: 16, marginBottom: 8, color: '#89b4fa' }}>No lineage loaded</div>
-              <div style={{ fontSize: 13 }}>Enter a table FQN above or click "Show Lineage" in your editor</div>
+              <div style={{ fontSize: 16, marginBottom: 8, color: '#89b4fa' }}>
+                No lineage loaded
+              </div>
+              <div style={{ fontSize: 13 }}>
+                Enter a table FQN above or click "Show Lineage" in your editor
+              </div>
             </div>
           </div>
         )}
@@ -251,7 +365,10 @@ export default function App(): React.ReactElement {
               </marker>
               <filter id="glow">
                 <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
             </defs>
 
@@ -279,7 +396,7 @@ export default function App(): React.ReactElement {
               })}
 
               {/* Nodes */}
-              {allNodes.map(node => {
+              {allNodes.map((node) => {
                 const pos = positions.get(node.id);
                 if (!pos) return null;
                 const isCenter = node.id === lineageData.entity.id;
@@ -308,15 +425,38 @@ export default function App(): React.ReactElement {
                     <text x={14} y={22} fontSize={18} dominantBaseline="middle">
                       {NODE_ICONS[node.type?.toLowerCase() ?? 'table'] ?? '🗄'}
                     </text>
-                    <text x={38} y={22} fontSize={12} fontWeight={isCenter ? 700 : 500} fill={color} dominantBaseline="middle">
+                    <text
+                      x={38}
+                      y={22}
+                      fontSize={12}
+                      fontWeight={isCenter ? 700 : 500}
+                      fill={color}
+                      dominantBaseline="middle"
+                    >
                       {node.name.length > 14 ? node.name.slice(0, 14) + '…' : node.name}
                     </text>
-                    <text x={14} y={44} fontSize={10} fill="rgba(255,255,255,0.5)" dominantBaseline="middle">
+                    <text
+                      x={14}
+                      y={44}
+                      fontSize={10}
+                      fill="rgba(255,255,255,0.5)"
+                      dominantBaseline="middle"
+                    >
                       {node.type ?? 'table'}
                     </text>
                     {isHovered && node.description && (
                       <foreignObject x={0} y={NODE_H + 4} width={220} height={60}>
-                        <div style={{ background: 'rgba(30,30,46,0.95)', border: '1px solid rgba(137,180,250,0.3)', borderRadius: 6, padding: '4px 8px', fontSize: 11, color: '#cdd6f4', lineHeight: 1.4 }}>
+                        <div
+                          style={{
+                            background: 'rgba(30,30,46,0.95)',
+                            border: '1px solid rgba(137,180,250,0.3)',
+                            borderRadius: 6,
+                            padding: '4px 8px',
+                            fontSize: 11,
+                            color: '#cdd6f4',
+                            lineHeight: 1.4,
+                          }}
+                        >
                           {node.description.slice(0, 100)}
                         </div>
                       </foreignObject>
@@ -330,14 +470,35 @@ export default function App(): React.ReactElement {
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 12, padding: '6px 12px', borderTop: '1px solid var(--vscode-panel-border)', background: 'var(--vscode-sideBar-background)', fontSize: 11, opacity: 0.7, flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          padding: '6px 12px',
+          borderTop: '1px solid var(--vscode-panel-border)',
+          background: 'var(--vscode-sideBar-background)',
+          fontSize: 11,
+          opacity: 0.7,
+          flexShrink: 0,
+        }}
+      >
         {Object.entries(NODE_COLORS).map(([type, color]) => (
           <span key={type} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: color, display: 'inline-block' }} />
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 2,
+                background: color,
+                display: 'inline-block',
+              }}
+            />
             {type}
           </span>
         ))}
-        <span style={{ marginLeft: 'auto' }}>Scroll to zoom · Drag to pan · Click node for details</span>
+        <span style={{ marginLeft: 'auto' }}>
+          Scroll to zoom · Drag to pan · Click node for details
+        </span>
       </div>
     </div>
   );
